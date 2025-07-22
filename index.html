@@ -1,0 +1,1160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Archive</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Inter:wght@300;400;500;600&display=swap');
+        
+        :root {
+            --bg-primary: #0f0f0f;
+            --bg-secondary: #1a1a1a;
+            --text-primary: #e8e8e8;
+            --text-secondary: #a0a0a0;
+            --text-dim: #666;
+            --accent: #333;
+            --accent-light: #444;
+            --border: #2a2a2a;
+            --glass-bg: rgba(255,255,255,0.03);
+            --glass-border: rgba(255,255,255,0.08);
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            overflow-x: hidden;
+            line-height: 1.6;
+        }
+        
+        /* Complex background system */
+        .bg-canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            pointer-events: none;
+            z-index: -2;
+            background: radial-gradient(ellipse at top left, #1a1a1a 0%, var(--bg-primary) 50%),
+                        radial-gradient(ellipse at bottom right, #151515 0%, transparent 50%);
+        }
+        
+        .neural-grid {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: 
+                radial-gradient(circle at 1px 1px, rgba(255,255,255,0.05) 1px, transparent 0);
+            background-size: 60px 60px;
+            animation: grid-drift 45s linear infinite;
+            opacity: 0.4;
+        }
+        
+        .data-streams {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+        }
+        
+        .stream-line {
+            position: absolute;
+            width: 1px;
+            background: linear-gradient(to bottom, 
+                transparent 0%, 
+                rgba(255,255,255,0.1) 20%, 
+                rgba(255,255,255,0.05) 60%, 
+                transparent 100%);
+            animation: stream-flow 8s linear infinite;
+        }
+        
+        .floating-nodes {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+        }
+        
+        .node {
+            position: absolute;
+            width: 3px;
+            height: 3px;
+            background: rgba(255,255,255,0.15);
+            border-radius: 50%;
+            animation: node-float 20s ease-in-out infinite;
+        }
+        
+        .node.pulse {
+            animation: node-pulse 3s ease-in-out infinite;
+        }
+        
+        /* Depth layers */
+        .depth-layer {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, 
+                rgba(255,255,255,0.01) 0%, 
+                transparent 30%, 
+                rgba(255,255,255,0.005) 100%);
+            animation: depth-shift 60s ease-in-out infinite alternate;
+        }
+        
+        /* Welcome screen refinements */
+        .welcome-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: radial-gradient(ellipse at center, var(--bg-secondary) 0%, var(--bg-primary) 70%);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            transition: opacity 1.5s cubic-bezier(0.4, 0, 0.2, 1), 
+                       transform 1.5s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        
+        .welcome-screen.fade-out {
+            opacity: 0;
+            transform: scale(0.95);
+            pointer-events: none;
+        }
+        
+        .logo-container {
+            position: relative;
+            margin-bottom: 2.5rem;
+        }
+        
+        .welcome-logo {
+            font-family: 'Space Mono', monospace;
+            font-size: clamp(2rem, 5vw, 3.2rem);
+            font-weight: 400;
+            color: var(--text-primary);
+            opacity: 0;
+            animation: logo-reveal 2s cubic-bezier(0.2, 0.8, 0.2, 1) 0.3s forwards;
+            text-shadow: 0 0 20px rgba(255,255,255,0.1);
+        }
+        
+        .logo-glow {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 120%;
+            height: 120%;
+            background: radial-gradient(circle, rgba(255,255,255,0.03) 0%, transparent 70%);
+            opacity: 0;
+            animation: glow-pulse 4s ease-in-out infinite;
+        }
+        
+        .welcome-subtitle {
+            font-size: 1.1rem;
+            color: var(--text-secondary);
+            margin-bottom: 3rem;
+            opacity: 0;
+            animation: subtitle-fade 1.5s ease-out 1.2s forwards;
+            font-weight: 300;
+            letter-spacing: 0.5px;
+        }
+        
+        .enter-btn {
+            padding: 1rem 2.5rem;
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+            color: var(--text-primary);
+            border-radius: 6px;
+            cursor: pointer;
+            font-family: inherit;
+            font-size: 0.95rem;
+            font-weight: 500;
+            letter-spacing: 0.5px;
+            transition: all 0.4s cubic-bezier(0.2, 0.8, 0.2, 1);
+            backdrop-filter: blur(10px);
+            opacity: 0;
+            animation: button-appear 1.2s ease-out 2s forwards;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .enter-btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent);
+            transition: left 0.6s ease;
+        }
+        
+        .enter-btn:hover {
+            background: rgba(255,255,255,0.08);
+            border-color: rgba(255,255,255,0.15);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.3);
+        }
+        
+        .enter-btn:hover::before {
+            left: 100%;
+        }
+        
+        .enter-btn:active {
+            transform: translateY(-1px);
+        }
+        
+        /* Main content improvements */
+        .main-content {
+            opacity: 0;
+            transform: translateY(30px);
+            transition: all 1.2s cubic-bezier(0.2, 0.8, 0.2, 1);
+            padding: 0;
+            min-height: 100vh;
+        }
+        
+        .main-content.show {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        
+        .content-wrapper {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 3rem 2rem;
+            position: relative;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 4rem;
+            position: relative;
+        }
+        
+        .header::before {
+            content: '';
+            position: absolute;
+            top: -20px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 60px;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, var(--text-dim), transparent);
+        }
+        
+        .main-title {
+            font-family: 'Space Mono', monospace;
+            font-size: clamp(2rem, 4vw, 2.8rem);
+            font-weight: 400;
+            margin-bottom: 0.8rem;
+            background: linear-gradient(135deg, var(--text-primary) 0%, var(--text-secondary) 100%);
+            background-clip: text;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            position: relative;
+        }
+        
+        .jp-subtitle {
+            font-size: 1rem;
+            color: var(--text-dim);
+            font-weight: 300;
+            margin-bottom: 1.5rem;
+            letter-spacing: 1px;
+        }
+        
+        .archive-stats {
+            display: inline-flex;
+            gap: 2rem;
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            font-family: 'Space Mono', monospace;
+        }
+        
+        .stat {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .stat-dot {
+            width: 6px;
+            height: 6px;
+            background: var(--text-dim);
+            border-radius: 50%;
+            animation: stat-blink 2s ease-in-out infinite;
+        }
+        
+        /* Enhanced search */
+        .search-section {
+            margin-bottom: 4rem;
+            position: relative;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        
+        .search-container {
+            position: relative;
+        }
+        
+        .search-wrapper {
+            position: relative;
+            background: var(--glass-bg);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 2px;
+            backdrop-filter: blur(10px);
+            transition: all 0.3s ease;
+        }
+        
+        .search-wrapper:focus-within {
+            border-color: var(--glass-border);
+            background: rgba(255,255,255,0.05);
+            box-shadow: 0 0 30px rgba(255,255,255,0.05);
+        }
+        
+        .search-bar {
+            width: 100%;
+            padding: 1.2rem 1.5rem;
+            background: transparent;
+            border: none;
+            color: var(--text-primary);
+            font-family: inherit;
+            font-size: 1rem;
+            outline: none;
+            border-radius: 8px;
+        }
+        
+        .search-bar::placeholder {
+            color: var(--text-dim);
+            font-weight: 300;
+        }
+        
+        /* Grid system overhaul */
+        .games-section {
+            margin-bottom: 5rem;
+        }
+        
+        .games-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
+            gap: 2.5rem;
+            padding: 0;
+        }
+        
+        .game-card {
+            background: var(--glass-bg);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            overflow: hidden;
+            transition: all 0.5s cubic-bezier(0.2, 0.8, 0.2, 1);
+            backdrop-filter: blur(20px);
+            position: relative;
+            cursor: pointer;
+        }
+        
+        .game-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(135deg, 
+                rgba(255,255,255,0.05) 0%, 
+                transparent 50%, 
+                rgba(255,255,255,0.02) 100%);
+            opacity: 0;
+            transition: opacity 0.4s ease;
+            pointer-events: none;
+            z-index: 1;
+        }
+        
+        .game-card:hover {
+            transform: translateY(-8px);
+            border-color: var(--glass-border);
+            box-shadow: 0 20px 40px rgba(0,0,0,0.4);
+        }
+        
+        .game-card:hover::before {
+            opacity: 1;
+        }
+        
+        .game-thumbnail {
+            width: 100%;
+            height: 220px;
+            position: relative;
+            overflow: hidden;
+            background: linear-gradient(45deg, #1a1a1a, #2a2a2a);
+        }
+        
+        .game-thumbnail img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transition: transform 0.6s cubic-bezier(0.2, 0.8, 0.2, 1);
+        }
+        
+        .game-card:hover .game-thumbnail img {
+            transform: scale(1.08);
+        }
+        
+        .game-icon {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 4rem;
+            z-index: 2;
+            text-shadow: 0 0 20px rgba(0,0,0,0.7);
+        }
+        
+        .thumbnail-overlay {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 60px;
+            background: linear-gradient(to top, rgba(0,0,0,0.8), transparent);
+            z-index: 1;
+        }
+        
+        .game-details {
+            padding: 2rem;
+            position: relative;
+            z-index: 2;
+        }
+        
+        .game-header {
+            margin-bottom: 1.2rem;
+        }
+        
+        .game-title {
+            font-size: 1.35rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 0.3rem;
+            line-height: 1.3;
+        }
+        
+        .game-jp {
+            font-size: 0.8rem;
+            color: var(--text-dim);
+            font-family: 'Space Mono', monospace;
+            opacity: 0.7;
+        }
+        
+        .game-description {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            line-height: 1.5;
+            margin-bottom: 1.5rem;
+            font-weight: 300;
+        }
+        
+        .game-metadata {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+            padding: 1rem;
+            background: rgba(255,255,255,0.02);
+            border-radius: 8px;
+            border: 1px solid rgba(255,255,255,0.05);
+        }
+        
+        .meta-item {
+            text-align: center;
+        }
+        
+        .meta-label {
+            font-size: 0.75rem;
+            color: var(--text-dim);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 0.3rem;
+            font-weight: 500;
+        }
+        
+        .meta-value {
+            font-family: 'Space Mono', monospace;
+            font-size: 0.9rem;
+            color: var(--text-primary);
+            font-weight: 600;
+        }
+        
+        .download-section {
+            border-top: 1px solid rgba(255,255,255,0.05);
+            padding-top: 1.5rem;
+        }
+        
+        .dl-btn {
+            width: 100%;
+            padding: 1rem;
+            background: var(--accent);
+            border: 1px solid var(--accent-light);
+            color: var(--text-primary);
+            border-radius: 8px;
+            cursor: pointer;
+            font-family: inherit;
+            font-size: 0.9rem;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+            transition: all 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+            text-transform: uppercase;
+        }
+        
+        .dl-btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent);
+            transition: left 0.6s ease;
+        }
+        
+        .dl-btn:hover {
+            background: var(--accent-light);
+            border-color: rgba(255,255,255,0.2);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+        }
+        
+        .dl-btn:hover::before {
+            left: 100%;
+        }
+        
+        .dl-btn.downloading {
+            background: linear-gradient(45deg, #2d5016, #3d6522);
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .progress-track {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            height: 3px;
+            background: rgba(0,255,136,0.8);
+            width: 0%;
+            transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            border-radius: 0 0 8px 8px;
+        }
+        
+        /* Footer styling */
+        .footer {
+            text-align: center;
+            padding: 3rem 2rem 2rem;
+            color: var(--text-dim);
+            font-size: 0.9rem;
+            border-top: 1px solid rgba(255,255,255,0.05);
+            margin-top: 3rem;
+        }
+        
+        .footer-content {
+            max-width: 600px;
+            margin: 0 auto;
+        }
+        
+        .footer-main {
+            margin-bottom: 0.8rem;
+            font-weight: 300;
+        }
+        
+        .footer-jp {
+            font-size: 0.8rem;
+            color: rgba(255,255,255,0.3);
+            font-family: 'Space Mono', monospace;
+        }
+        
+        /* Enhanced animations */
+        @keyframes logo-reveal {
+            0% {
+                opacity: 0;
+                transform: translateY(20px) scale(0.9);
+            }
+            100% {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
+        }
+        
+        @keyframes glow-pulse {
+            0%, 100% { opacity: 0; }
+            50% { opacity: 1; }
+        }
+        
+        @keyframes subtitle-fade {
+            0% {
+                opacity: 0;
+                transform: translateY(15px);
+            }
+            100% {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        @keyframes button-appear {
+            0% {
+                opacity: 0;
+                transform: translateY(15px);
+            }
+            100% {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        @keyframes grid-drift {
+            0% { transform: translate(0, 0); }
+            100% { transform: translate(60px, 60px); }
+        }
+        
+        @keyframes stream-flow {
+            0% {
+                height: 0;
+                top: 0;
+                opacity: 0;
+            }
+            10% {
+                opacity: 1;
+            }
+            90% {
+                opacity: 1;
+            }
+            100% {
+                height: 100vh;
+                top: 100vh;
+                opacity: 0;
+            }
+        }
+        
+        @keyframes node-float {
+            0%, 100% {
+                transform: translate(0, 0) scale(1);
+                opacity: 0.3;
+            }
+            50% {
+                transform: translate(20px, -20px) scale(1.2);
+                opacity: 0.8;
+            }
+        }
+        
+        @keyframes node-pulse {
+            0%, 100% {
+                box-shadow: 0 0 0 0 rgba(255,255,255,0.3);
+                opacity: 0.3;
+            }
+            50% {
+                box-shadow: 0 0 0 10px rgba(255,255,255,0);
+                opacity: 1;
+            }
+        }
+        
+        @keyframes depth-shift {
+            0% { transform: translateZ(0) rotateZ(0deg); }
+            100% { transform: translateZ(10px) rotateZ(0.5deg); }
+        }
+        
+        @keyframes stat-blink {
+            0%, 90% { opacity: 0.6; }
+            95% { opacity: 1; }
+            100% { opacity: 0.6; }
+        }
+        
+        /* Responsive design */
+        @media (max-width: 768px) {
+            .content-wrapper {
+                padding: 2rem 1.5rem;
+            }
+            
+            .games-grid {
+                grid-template-columns: 1fr;
+                gap: 2rem;
+            }
+            
+            .archive-stats {
+                flex-direction: column;
+                gap: 1rem;
+                align-items: center;
+            }
+            
+            .game-metadata {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .content-wrapper {
+                padding: 1.5rem 1rem;
+            }
+            
+            .game-details {
+                padding: 1.5rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Advanced background system -->
+    <div class="bg-canvas">
+        <div class="neural-grid"></div>
+        <div class="data-streams"></div>
+        <div class="floating-nodes"></div>
+        <div class="depth-layer"></div>
+    </div>
+
+    <!-- Welcome interface -->
+    <div class="welcome-screen" id="welcomeScreen">
+        <div class="logo-container">
+            <div class="logo-glow"></div>
+            <div class="welcome-logo">ゲームアーカイブ</div>
+        </div>
+        <div class="welcome-subtitle">Digital Repack Portal</div>
+        <button class="enter-btn" onclick="initializeInterface()">Enter Archive</button>
+    </div>
+
+    <!-- Main interface -->
+    <div class="main-content" id="mainContent">
+        <div class="content-wrapper">
+            <header class="header">
+                <h1 class="main-title">Game Archive</h1>
+                <div class="jp-subtitle">ゲームコレクション・保存庫</div>
+                <div class="archive-stats">
+                    <div class="stat">
+                        <div class="stat-dot"></div>
+                        <span>Repository Active</span>
+                    </div>
+                    <div class="stat">
+                        <div class="stat-dot"></div>
+                        <span id="gameCount">Loading...</span>
+                    </div>
+                </div>
+            </header>
+
+            <section class="search-section">
+                <div class="search-container">
+                    <div class="search-wrapper">
+                        <input type="text" class="search-bar" 
+                               placeholder="Search archive... (アーカイブ検索)" 
+                               id="searchInput">
+                    </div>
+                </div>
+            </section>
+
+            <section class="games-section">
+                <div class="games-grid" id="gamesContainer"></div>
+            </section>
+        </div>
+
+        <footer class="footer">
+            <div class="footer-content">
+                <div class="footer-main">Digital repack archive</div>
+                <div class="footer-jp">リパックアーカイブ</div>
+            </div>
+        </footer>
+    </div>
+
+    <!-- Background audio -->
+    <audio id="ambientTrack" loop preload="auto">
+        <source src="https://cdn.discordapp.com/attachments/1289531201299677318/1395195772039073872/inthisworld.mp3?ex=6880d111&is=687f7f91&hm=ab9a5cb3bf8e77e469b2332a638291ffb85a211968aab824a4fee034ee76ffa9&" type="audio/wav">
+    </audio>
+
+    <script>
+        // Game repository - easy to modify
+        const gameRepository = [
+            {
+                id: 'bigfoot',
+                title: "BIGFOOT",
+                description: "You are a Bigfoot hunter with an important mission: to put an end to rumours once and for all and prove to yourself that Bigfoot is not just a myth or an invention of the mind...",
+                dlSize: "2.76 GB",
+                installSize: "3.87 GB",
+                jp: "ビッグフット",
+                icon: "#",
+				image: "https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/509980/capsule_616x353.jpg?t=1739188508",
+                thumbnail: null,
+                downloadLink: "https://mega.nz/file/JERnCboY#MlFvDq36pyt1JY33zu0Ex-kzESoUD5i5qvCyXPSjmnM"
+            },
+			{
+                id: 'deltarune',
+                title: "DELTARUNE (Chapters 3+4)",
+                description: "Dive into the parallel story to UNDERTALE! Fight or spare your way through action-packed battles as you explore a mysterious world alongside an endearing cast of new and familiar characters. Chapters 1-4 will be available on launch, with more planned as free updates!",
+                dlSize: "446.9 MB", 
+                installSize: "446.9 MB",
+                jp: "デルタルーン",
+                icon: "#",
+				image: "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1671210/capsule_616x353.jpg?t=1749252480",
+                thumbnail: null,
+                downloadLink: "https://gofile.io/d/9ja9fm"
+            },
+            {
+                id: 'backrooms',
+                title: "Escape the Backrooms",
+                description: "Escape the Backrooms is a 1-4 player co-op horror exploration game. Traverse through eerie backrooms levels while avoiding entities and other danger to try and escape. Free content updates with new levels and game modes keep the community rewarded.",
+                dlSize: "13.9 GB", 
+                installSize: "22.2 GB",
+                jp: "エスケープ・ザ・バックルーム",
+                icon: "#",
+				image: "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1943950/capsule_616x353.jpg?t=1721158394",
+                thumbnail: null,
+                downloadLink: "https://drive.google.com/file/d/1Wp2pN35m5tzjaUTb_DjpeasQgc6bA1B3/view"
+            },
+            {
+                id: 'gang-beasts',
+                title: "Gang Beasts",
+                description: "Gang Beasts is a silly multiplayer party game with surly gelatinous characters, brutal slapstick fight sequences, and absurd hazardous environments, set in the mean streets of Beef City.",
+                dlSize: "619 MB",
+                installSize: "1.16 GB", 
+                jp: "ギャングビースト",
+                icon: "#",
+				image: "https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/285900/header.jpg?t=1732109683",
+                thumbnail: null,
+                downloadLink: "https://mega.nz/file/oEQViSgJ#Q0fkLyuEOjl2WlkddfKiTJ579-sF31aeNTZhbJtR5ns"
+            },
+            {
+                id: 'lethal-company',
+                title: "Lethal Company", 
+                description: "A co-op horror about scavenging at abandoned moons to sell scrap to the Company.",
+                dlSize: "364 MB",
+                installSize: "1.05 GB", 
+                jp: "リーサルカンパニー",
+                icon: "️",
+				image: "https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/1966720/header.jpg?t=1750273815",
+                thumbnail: null,
+                downloadLink: "https://mega.nz/file/BBIHUARI#kmI2wf0y3fGgNr3-YWcPD7CCvK-WAItel-5SybQhgHU"
+            },
+            {
+                id: 'liars-bar',
+                title: "Liars Bar",
+                description: "Dive into this multiplayer online experience set in a sketchy bar where the games are as dangerous as the patrons. Join a table of 4 and test your skills in Liar's Dice and Liar's Deck, where lying and bluffing are key to victory. Ready for a night at Liar's Bar?",
+                dlSize: "2.27 GB",
+                installSize: "12.4 GB", 
+                jp: "ライアーズ・バー",
+                icon: "#",
+				image: "https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/3097560/779fd888bc6ac673dd75254aad814b7e8a47ce7a/header.jpg?t=1750969308",
+                thumbnail: null,
+                downloadLink: "https://mega.nz/file/pERBXBIL#z7zg1I4zlMD4D0NPCzDc6xDu8tl3OCEw-so66UonxkU"
+            },
+            {
+                id: 'peak',
+                title: "PEAK",
+                description: "PEAK is a co-op climbing game where the slightest mistake can spell your doom. Either solo or as a group of lost nature scouts, your only hope of rescue from a mysterious island is to scale the mountain at its center. Do you have what it takes to reach the PEAK?",
+                dlSize: "669 MB",
+                installSize: "4.86 GB",
+                jp: "ピーク", 
+                icon: "#",
+				image: "https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/3527290/31bac6b2eccf09b368f5e95ce510bae2baf3cfcd/header.jpg?t=1752223900",
+                thumbnail: null,
+                downloadLink: "https://mega.nz/file/kJInFL7K#qTeyDJ00eL3VdMmVSK57xYKmbDqAvQ3cHn4UvCo1RFM"
+            },
+			            {
+                id: 'phasmophobia',
+                title: "Phasmophobia",
+                description: "Phasmophobia is a 4 player online co-op psychological horror. Paranormal activity is on the rise and it’s up to you and your team to use all the ghost-hunting equipment at your disposal in order to gather as much evidence as you can.",
+                dlSize: "8.60 GB",
+                installSize: "30.6 GB",
+                jp: "ファズモフォビア", 
+                icon: "#",
+				image: "https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/739630/header.jpg?t=1751054308",
+                thumbnail: null,
+                downloadLink: "https://drive.google.com/file/d/1ve3cKCVYss-SBdsQgbkxQJOnYcjeQ6cu/view"
+            },
+		    {
+                id: 'schedule-i',
+                title: "Schedule I",
+                description: "From small-time dope pusher to kingpin - manufacture and distribute a range of drugs throughout the grungy city of Hyland Point. Expand your empire with properties, businesses, employees and more.",
+                dlSize: "1.54 GB",
+                installSize: "6.97 GB",
+                jp: "スケジュール1", 
+                icon: "#",
+				image: "https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/3164500/header.jpg?t=1751926051",
+                thumbnail: null,
+                downloadLink: "https://mega.nz/file/1dwDQSrQ#E9MZv4jBKkLR3L6lD4KiBpQFTvOAM0M9GGNzShqft30"
+            },
+					    {
+                id: 'slime-rancher',
+                title: "Slime Rancher 2",
+                description: "Continue the adventures of Beatrix LeBeau as she journeys across the Slime Sea to Rainbow Island, a land brimming with ancient mysteries, and bursting with wiggly, new slimes to wrangle in this sequel to the smash-hit, Slime Rancher.",
+                dlSize: "1.30 GB",
+                installSize: "3.06 GB",
+                jp: "スライムランチャー2", 
+                icon: "#",
+				image: "https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/1657630/header.jpg?t=1750931500",
+                thumbnail: null,
+                downloadLink: "https://mega.nz/file/YNBEGRQA#0v-aaKPCxd5_pMIKvFRQQtKyI2R8UtsvVAujbnoVNow"
+            },
+		    {
+                id: 'the-headliners',
+                title: "The Headliners",
+                description: "Co-op horror game where you play in teams of 1 to 8 reckless journalists, ready to explore a city overrun by deadly creatures to snap spectacular footage. Your only goal: make the headlines without becoming on",
+                dlSize: "5.46 GB",
+                installSize: "7.39 GB",
+                jp: "ヘッドライナー", 
+                icon: "#",
+				image: "https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/3059070/62f137f87bbbe03ff34fe64f79aec4059532e849/header.jpg?t=1746696123",
+                thumbnail: null,
+                downloadLink: "https://drive.google.com/file/d/1gcGjEclVZGVMH4doxGby5aEFXIO5Ji3G/view"
+            }
+        ];
+
+        // State management
+        let currentGames = [...gameRepository];
+        let isInitialized = false;
+        
+        // Background system initialization
+        function setupBackground() {
+            const streams = document.querySelector('.data-streams');
+            const nodes = document.querySelector('.floating-nodes');
+            
+            // Create data streams
+            for (let i = 0; i < 12; i++) {
+                const stream = document.createElement('div');
+                stream.className = 'stream-line';
+                stream.style.left = Math.random() * 100 + '%';
+                stream.style.animationDelay = Math.random() * 8 + 's';
+                stream.style.animationDuration = (6 + Math.random() * 4) + 's';
+                streams.appendChild(stream);
+            }
+            
+// Create floating nodes  
+            for (let i = 0; i < 25; i++) {
+                const node = document.createElement('div');
+                node.className = 'node' + (Math.random() > 0.7 ? ' pulse' : '');
+                node.style.left = Math.random() * 100 + '%';
+                node.style.top = Math.random() * 100 + '%';
+                node.style.animationDelay = Math.random() * 20 + 's';
+                node.style.animationDuration = (15 + Math.random() * 10) + 's';
+                nodes.appendChild(node);
+            }
+        }
+        
+        // Game card rendering with staggered animations
+        function renderGameCards() {
+            const container = document.getElementById('gamesContainer');
+            container.innerHTML = '';
+            
+            currentGames.forEach((game, index) => {
+                const card = document.createElement('div');
+                card.className = 'game-card';
+                card.style.animationDelay = (index * 0.1) + 's';
+                
+const iconHtml = game.image 
+                    ? `<div class="game-icon"><img src="${game.image}" alt="${game.title}"></div>`
+                    : `<div class="game-icon emoji-icon">${game.icon}</div>`;
+                
+                card.innerHTML = `
+                    <div class="game-thumbnail">
+                        ${iconHtml}
+                        <div class="thumbnail-overlay"></div>
+                    </div>
+                    <div class="game-details">
+                        <div class="game-header">
+                            <h3 class="game-title">${game.title}</h3>
+                            <div class="game-jp">${game.jp}</div>
+                        </div>
+                        <p class="game-description">${game.description}</p>
+                        <div class="game-metadata">
+                            <div class="meta-item">
+                                <div class="meta-label">Download</div>
+                                <div class="meta-value">${game.dlSize}</div>
+                            </div>
+                            <div class="meta-item">
+                                <div class="meta-label">Installed</div>
+                                <div class="meta-value">${game.installSize}</div>
+                            </div>
+                            <div class="meta-item">
+                                <div class="meta-label">Status</div>
+                                <div class="meta-value">Ready</div>
+                            </div>
+                        </div>
+                        <div class="download-section">
+                            <button class="dl-btn" onclick="handleDownload('${game.id}', '${game.downloadLink}')">
+                                Download Repack
+                            </button>
+                        </div>
+                    </div>
+                `;
+                
+                container.appendChild(card);
+            });
+            
+            // Update stats
+            document.getElementById('gameCount').textContent = `${currentGames.length} titles available`;
+        }
+        
+        // Search functionality with smooth filtering
+        function setupSearch() {
+            const searchInput = document.getElementById('searchInput');
+            let searchTimeout;
+            
+            searchInput.addEventListener('input', (e) => {
+                clearTimeout(searchTimeout);
+                searchTimeout = setTimeout(() => {
+                    const query = e.target.value.toLowerCase().trim();
+                    
+                    if (query === '') {
+                        currentGames = [...gameRepository];
+                    } else {
+                        currentGames = gameRepository.filter(game => 
+                            game.title.toLowerCase().includes(query) ||
+                            game.description.toLowerCase().includes(query) ||
+                            game.jp.includes(query)
+                        );
+                    }
+                    
+                    renderGameCards();
+                }, 300);
+            });
+        }
+        
+        // Download handler - simple redirect
+        function handleDownload(gameId, downloadLink) {
+            // Just redirect to download link
+            window.open(downloadLink, '_blank');
+        }
+        
+        // Main initialization sequence
+        function initializeInterface() {
+            if (isInitialized) return;
+            
+            const welcomeScreen = document.getElementById('welcomeScreen');
+            const mainContent = document.getElementById('mainContent');
+            const ambientAudio = document.getElementById('ambientTrack');
+            
+            // Fade out welcome screen
+            welcomeScreen.classList.add('fade-out');
+            
+            // Show main content after delay
+            setTimeout(() => {
+                welcomeScreen.style.display = 'none';
+                mainContent.classList.add('show');
+                
+                // Start ambient audio quietly
+                ambientAudio.volume = 0.1;
+                ambientAudio.play().catch(() => {
+                    // Ignore audio play errors (browser restrictions)
+                });
+                
+                // Initialize components
+                setupSearch();
+                renderGameCards();
+                startInteractiveElements();
+                
+                isInitialized = true;
+            }, 1500);
+        }
+        
+        // Interactive elements and micro-animations
+        function startInteractiveElements() {
+            // Add hover effects to cards
+            document.addEventListener('mouseover', (e) => {
+                if (e.target.closest('.game-card')) {
+                    const card = e.target.closest('.game-card');
+                    const icon = card.querySelector('.game-icon');
+                    if (icon) {
+                        icon.style.transform = 'translate(-50%, -50%) scale(1.1) rotate(5deg)';
+                        icon.style.transition = 'transform 0.3s ease';
+                    }
+                }
+            });
+            
+            document.addEventListener('mouseout', (e) => {
+                if (e.target.closest('.game-card')) {
+                    const card = e.target.closest('.game-card');
+                    const icon = card.querySelector('.game-icon');
+                    if (icon) {
+                        icon.style.transform = 'translate(-50%, -50%) scale(1) rotate(0deg)';
+                    }
+                }
+            });
+            
+            // Parallax effect for background elements
+            let ticking = false;
+            function updateParallax() {
+                const scrolled = window.pageYOffset;
+                const parallaxElements = document.querySelectorAll('.neural-grid, .depth-layer');
+                
+                parallaxElements.forEach((el, index) => {
+                    const speed = 0.2 + (index * 0.1);
+                    el.style.transform = `translateY(${scrolled * speed}px)`;
+                });
+                
+                ticking = false;
+            }
+            
+            window.addEventListener('scroll', () => {
+                if (!ticking) {
+                    requestAnimationFrame(updateParallax);
+                    ticking = true;
+                }
+            });
+            
+            // Dynamic stat dots blinking
+            const statDots = document.querySelectorAll('.stat-dot');
+            statDots.forEach((dot, index) => {
+                setInterval(() => {
+                    dot.style.background = Math.random() > 0.7 ? '#4ade80' : 'var(--text-dim)';
+                }, 2000 + (index * 500));
+            });
+        }
+        
+        // Keyboard shortcuts
+        document.addEventListener('keydown', (e) => {
+            // Focus search on '/' key
+            if (e.key === '/' && e.target.tagName !== 'INPUT') {
+                e.preventDefault();
+                document.getElementById('searchInput').focus();
+            }
+            
+            // Clear search on Escape
+            if (e.key === 'Escape' && e.target.id === 'searchInput') {
+                e.target.value = '';
+                e.target.blur();
+                currentGames = [...gameRepository];
+                renderGameCards();
+            }
+        });
+        
+        // Initialize background on page load
+        document.addEventListener('DOMContentLoaded', () => {
+            setupBackground();
+            
+            // Preload some random background changes
+            setInterval(() => {
+                const streams = document.querySelectorAll('.stream-line');
+                const randomStream = streams[Math.floor(Math.random() * streams.length)];
+                if (randomStream) {
+                    randomStream.style.animationDuration = (4 + Math.random() * 6) + 's';
+                }
+            }, 8000);
+        });
+        
+        // Handle window resize gracefully
+        window.addEventListener('resize', () => {
+            // Recalculate any position-dependent animations
+            const nodes = document.querySelectorAll('.node');
+            nodes.forEach(node => {
+                if (Math.random() > 0.8) {
+                    node.style.left = Math.random() * 100 + '%';
+                    node.style.top = Math.random() * 100 + '%';
+                }
+            });
+        });
+    </script>
+</body>
+</html>
